@@ -14,7 +14,6 @@ from topic_modeling import extract_texts_for_topic_model, build_topic_model
 from citation_graph import build_citation_graph
 from embedding_store import build_faiss_index, semantic_search
 
-
 # Environment variables for database
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
