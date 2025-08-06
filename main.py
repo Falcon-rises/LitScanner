@@ -4,24 +4,33 @@ from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import uvicorn
+import os
+import networkx as nx
 
 from models import Base, Paper
 from crawler import crawl_papers
 from summarizer import batch_summarize_with_pegasus, generate_meta_review
 from topic_modeling import extract_texts_for_topic_model, build_topic_model
 from citation_graph import build_citation_graph
-import networkx as nx
+from embedding_store import build_faiss_index, semantic_search
 
-import json
-import os
+# Environment variables for database
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg2://username:password@localhost/research_db"
+)
 
-DATABASE_URL = "postgresql+psycopg2://username:password@localhost/research_db"
-
+# Create engine and session
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Ensure tables exist
 Base.metadata.create_all(bind=engine)
 
+# Ensure data folder exists
+os.makedirs("data", exist_ok=True)
+
+# Initialize FastAPI app
 app = FastAPI(title="Research Review Engine", version="2.0")
 
 # Enable CORS
@@ -92,6 +101,9 @@ def topics():
     db = SessionLocal()
     try:
         papers = db.query(Paper).filter(Paper.summary != None).all()
+        if not papers:
+            raise HTTPException(status_code=404, detail="No summarized papers found")
+
         texts = extract_texts_for_topic_model([p.to_dict() for p in papers])
         topic_model = build_topic_model(texts)
 
@@ -105,6 +117,27 @@ def topics():
     finally:
         db.close()
 
+@app.get("/search")
+def search_papers(query: str):
+    """
+    Semantic search for related papers.
+    """
+    db = SessionLocal()
+    try:
+        index, ids = build_faiss_index(db)
+        if index is None:
+            return {"message": "No papers available for search"}
+        
+        results = semantic_search(index, ids, query)
+        papers = []
+        for res in results:
+            paper = db.query(Paper).get(res["paper_id"])
+            if paper:
+                papers.append({**paper.to_dict(), "score": res["score"]})
+        return {"query": query, "results": papers}
+    finally:
+        db.close()
+
 @app.get("/citation-graph")
 def citation_graph():
     """
@@ -113,6 +146,9 @@ def citation_graph():
     db = SessionLocal()
     try:
         papers = db.query(Paper).all()
+        if not papers:
+            raise HTTPException(status_code=404, detail="No papers found")
+
         G = build_citation_graph([p.to_dict() for p in papers])
         nodes = [{"id": n, **G.nodes[n]} for n in G.nodes()]
         edges = [{"source": u, "target": v} for u, v in G.edges()]
