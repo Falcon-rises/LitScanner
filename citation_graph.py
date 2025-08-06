@@ -12,13 +12,13 @@ export default function App() {
   const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
   useEffect(() => {
-    // Fetch meta review
-    axios.get(`${apiUrl}/summarize`)
+    axios
+      .get(`${apiUrl}/summarize`)
       .then(res => setMetaReview(res.data.meta_review))
       .catch(err => console.error("Error fetching meta review:", err));
 
-    // Fetch topic clusters
-    axios.get(`${apiUrl}/topics`)
+    axios
+      .get(`${apiUrl}/topics`)
       .then(res => {
         const topicInfo = res.data.topic_info || {};
         const names = topicInfo["Name"] || {};
@@ -26,7 +26,7 @@ export default function App() {
 
         const data = Object.keys(names).map(i => ({
           topic: names[i],
-          count: counts[i] || 0
+          count: counts[i] || 0,
         }));
         setTopics(data);
       })
@@ -45,14 +45,12 @@ export default function App() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Research Review Dashboard</h1>
-      
-      {/* Meta Review */}
+
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-2">Meta Review</h2>
         <pre className="bg-gray-100 p-4 rounded">{metaReview}</pre>
       </section>
 
-      {/* Topic Chart */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-2">Topic Clusters</h2>
         <BarChart width={600} height={300} data={topics}>
@@ -63,25 +61,24 @@ export default function App() {
         </BarChart>
       </section>
 
-      {/* Citation Graph */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-2">Citation Graph</h2>
         <CitationGraph />
       </section>
 
-      {/* Semantic Search */}
       <section>
         <h2 className="text-xl font-semibold mb-2">Semantic Search</h2>
         <div className="flex gap-2">
-          <input 
+          <input
             className="border p-2 rounded w-64"
             placeholder="Search related papers..."
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={e => setQuery(e.target.value)}
           />
-          <button 
+          <button
             className="bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={handleSearch}>
+            onClick={handleSearch}
+          >
             Search
           </button>
         </div>
@@ -96,3 +93,4 @@ export default function App() {
     </div>
   );
 }
+
