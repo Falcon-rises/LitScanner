@@ -7,12 +7,13 @@ import uvicorn
 import os
 import networkx as nx
 
-from models import Base, Paper
+from model import Base, Paper
 from crawler import crawl_papers
 from summarizer import batch_summarize_with_pegasus, generate_meta_review
 from topic_modeling import extract_texts_for_topic_model, build_topic_model
 from citation_graph import build_citation_graph
 from embedding_store import build_faiss_index, semantic_search
+
 
 # Environment variables for database
 DATABASE_URL = os.getenv(
