@@ -9,21 +9,37 @@ export default function App() {
   const [searchResults, setSearchResults] = useState([]);
   const [query, setQuery] = useState("");
 
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
   useEffect(() => {
-    axios.get("/summarize").then(res => setMetaReview(res.data.meta_review));
-    axios.get("/topics").then(res => {
-      const topicInfo = res.data.topic_info;
-      const data = Object.keys(topicInfo["Name"]).map(i => ({
-        topic: topicInfo["Name"][i],
-        count: topicInfo["Count"][i]
-      }));
-      setTopics(data);
-    });
-  }, []);
+    // Fetch meta review
+    axios.get(`${apiUrl}/summarize`)
+      .then(res => setMetaReview(res.data.meta_review))
+      .catch(err => console.error("Error fetching meta review:", err));
+
+    // Fetch topic clusters
+    axios.get(`${apiUrl}/topics`)
+      .then(res => {
+        const topicInfo = res.data.topic_info || {};
+        const names = topicInfo["Name"] || {};
+        const counts = topicInfo["Count"] || {};
+
+        const data = Object.keys(names).map(i => ({
+          topic: names[i],
+          count: counts[i] || 0
+        }));
+        setTopics(data);
+      })
+      .catch(err => console.error("Error fetching topics:", err));
+  }, [apiUrl]);
 
   const handleSearch = async () => {
-    const res = await axios.get(`/search?query=${query}`);
-    setSearchResults(res.data.results);
+    try {
+      const res = await axios.get(`${apiUrl}/search?query=${query}`);
+      setSearchResults(res.data.results || []);
+    } catch (err) {
+      console.error("Error during search:", err);
+    }
   };
 
   return (
@@ -72,7 +88,7 @@ export default function App() {
         <ul className="mt-4">
           {searchResults.map((r, i) => (
             <li key={i} className="border-b py-2">
-              <strong>{r.title}</strong> ({r.score.toFixed(2)})
+              <strong>{r.title}</strong> ({(r.score || 0).toFixed(2)})
             </li>
           ))}
         </ul>
