@@ -51,8 +51,7 @@ def crawl(query: str = Query(...), limit: int = 20):
     """
     Crawl papers and store them in DB.
     """
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         papers = crawl_papers(query, limit)
         for paper in papers:
             db_paper = Paper(
@@ -65,16 +64,13 @@ def crawl(query: str = Query(...), limit: int = 20):
             db.add(db_paper)
         db.commit()
         return {"message": f"Crawled and saved {len(papers)} papers"}
-    finally:
-        db.close()
 
 @app.get("/summarize")
 def summarize():
     """
     Summarize papers in DB and generate a GPT meta-review.
     """
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         papers = db.query(Paper).all()
         if not papers:
             raise HTTPException(status_code=404, detail="No papers found")
@@ -90,16 +86,13 @@ def summarize():
         meta_review = generate_meta_review(summaries)
 
         return {"summarized_count": len(summarized), "meta_review": meta_review}
-    finally:
-        db.close()
 
 @app.get("/topics")
 def topics():
     """
     Run topic modeling and assign topics to papers.
     """
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         papers = db.query(Paper).filter(Paper.summary != None).all()
         if not papers:
             raise HTTPException(status_code=404, detail="No summarized papers found")
@@ -114,16 +107,13 @@ def topics():
 
         topic_info = topic_model.get_topic_info()
         return {"topics_count": len(topic_info), "topic_info": topic_info.to_dict()}
-    finally:
-        db.close()
 
 @app.get("/search")
 def search_papers(query: str):
     """
     Semantic search for related papers.
     """
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         index, ids = build_faiss_index(db)
         if index is None:
             return {"message": "No papers available for search"}
@@ -131,20 +121,17 @@ def search_papers(query: str):
         results = semantic_search(index, ids, query)
         papers = []
         for res in results:
-            paper = db.query(Paper).get(res["paper_id"])
+            paper = db.get(Paper, res["paper_id"])
             if paper:
                 papers.append({**paper.to_dict(), "score": res["score"]})
         return {"query": query, "results": papers}
-    finally:
-        db.close()
 
 @app.get("/citation-graph")
 def citation_graph():
     """
     Generate citation graph JSON.
     """
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         papers = db.query(Paper).all()
         if not papers:
             raise HTTPException(status_code=404, detail="No papers found")
@@ -155,8 +142,6 @@ def citation_graph():
         nx.write_gexf(G, "data/citation_graph.gexf")
 
         return {"nodes": nodes, "edges": edges}
-    finally:
-        db.close()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
