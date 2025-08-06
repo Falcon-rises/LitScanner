@@ -1,5 +1,6 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Text
+from sqlalchemy import Column, Integer, String, Text, LargeBinary
+import numpy as np
 
 Base = declarative_base()
 
@@ -14,6 +15,7 @@ class Paper(Base):
     source = Column(String(50))
     summary = Column(Text, nullable=True)
     topic = Column(Integer, nullable=True)
+    embedding = Column(LargeBinary, nullable=True)
 
     def to_dict(self):
         return {
