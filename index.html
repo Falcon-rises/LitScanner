@@ -3,45 +3,87 @@
   <head>
     <meta charset="UTF-8" />
     <title>LitScanner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   </head>
-  <body class="bg-gray-100 text-gray-900">
-    <div id="root" class="p-6"></div>
+  <body class="bg-gray-50 text-gray-900 font-sans">
+    <div id="root" class="max-w-4xl mx-auto p-6"></div>
 
     <script type="text/javascript">
-      const { useState, useEffect } = React;
+      const { useState } = React;
 
       function App() {
-        const [summary, setSummary] = useState("Loading summary...");
+        const [query, setQuery] = useState("");
+        const [summary, setSummary] = useState(null);
+        const [loading, setLoading] = useState(false);
         const [error, setError] = useState(null);
 
-        useEffect(() => {
-          // Replace this URL with your backend endpoint
-          axios
-            .get("https://your-backend-url/summarize?query=ai+ethics")
-            .then((res) => {
-              setSummary(res.data.summary || "No summary received");
-            })
-            .catch((err) => {
-              setError("Failed to load summary");
-              console.error(err);
-            });
-        }, []);
+        const handleSubmit = async (e) => {
+          e.preventDefault();
+          setLoading(true);
+          setError(null);
+          setSummary(null);
+
+          try {
+            const res = await axios.get(`https://your-backend-url/summarize?query=${encodeURIComponent(query)}`);
+            setSummary(res.data.summary || "No summary received.");
+          } catch (err) {
+            console.error(err);
+            setError("❌ Could not load summary. Please try again.");
+          } finally {
+            setLoading(false);
+          }
+        };
 
         return React.createElement(
           "div",
-          { className: "max-w-2xl mx-auto bg-white p-6 rounded shadow" },
+          { className: "space-y-6" },
           React.createElement(
             "h1",
-            { className: "text-2xl font-bold mb-4" },
+            { className: "text-3xl font-bold text-blue-600" },
             "📘 LitScanner"
           ),
-          error
-            ? React.createElement("p", { className: "text-red-600" }, error)
-            : React.createElement("p", null, summary)
+          React.createElement(
+            "form",
+            { onSubmit: handleSubmit, className: "flex gap-4" },
+            React.createElement("input", {
+              className: "flex-1 px-4 py-2 border border-gray-300 rounded",
+              placeholder: "Enter your research topic...",
+              value: query,
+              onChange: (e) => setQuery(e.target.value),
+              required: true
+            }),
+            React.createElement(
+              "button",
+              {
+                type: "submit",
+                className: "bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              },
+              loading ? "Loading..." : "Scan"
+            )
+          ),
+          error &&
+            React.createElement(
+              "p",
+              { className: "text-red-500" },
+              error
+            ),
+          summary &&
+            React.createElement(
+              "div",
+              {
+                className: "bg-white p-4 border border-gray-200 rounded shadow-sm"
+              },
+              React.createElement(
+                "h2",
+                { className: "text-xl font-semibold mb-2" },
+                "📝 Summary"
+              ),
+              React.createElement("p", null, summary)
+            )
         );
       }
 
@@ -50,4 +92,3 @@
     </script>
   </body>
 </html>
-
