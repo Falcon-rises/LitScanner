@@ -28,7 +28,7 @@
           setSummary(null);
 
           try {
-            const res = await axios.get(`https://your-backend-url/summarize?query=${encodeURIComponent(query)}`);
+            const res = await axios.get(`https://litscanner-api.onrender.com/summarize?query=${encodeURIComponent(query)}`);
             setSummary(res.data.summary || "No summary received.");
           } catch (err) {
             console.error(err);
