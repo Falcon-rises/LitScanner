@@ -13,6 +13,18 @@ from summarizer import batch_summarize_with_pegasus, generate_meta_review
 from topic_modeling import extract_texts_for_topic_model, build_topic_model
 from citation_graph import build_citation_graph
 from embedding_store import build_faiss_index, semantic_search
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or ["https://lit-scanner-git-main-jewels-projects-88f893d0.vercel.app"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 # Environment variables for database
 DATABASE_URL = os.getenv(
