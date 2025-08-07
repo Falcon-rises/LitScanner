@@ -1,7 +1,11 @@
 from transformers import pipeline
-from openai import OpenAI
+import openai
 import json
 from typing import List, Dict
+import os
+
+# ---------- ENV: Set your OpenAI key ----------
+openai.api_key = os.getenv("OPENAI_API_KEY")  # Make sure this is set
 
 # ---------- Pegasus Summarizer ----------
 pegasus_summarizer = pipeline(
@@ -9,11 +13,8 @@ pegasus_summarizer = pipeline(
     model="google/pegasus-xsum",
     tokenizer="google/pegasus-xsum",
     framework="pt",
-    device=-1
+    device=-1  # CPU, change to 0 if using GPU
 )
-
-# ---------- OpenAI GPT Client ----------
-client = OpenAI()  # Requires OPENAI_API_KEY in environment
 
 def summarize_with_pegasus(text: str, max_len: int = 150) -> str:
     """
@@ -41,12 +42,11 @@ def batch_summarize_with_pegasus(papers: List[Dict]) -> List[Dict]:
         })
     return summarized
 
-# ---------- GPT Meta Review ----------
 def generate_meta_review(summaries: List[str]) -> str:
     """
-    Combine multiple Pegasus summaries into a high-level GPT meta-review.
+    Combine Pegasus summaries into a high-level GPT meta-review.
     """
-    combined_text = "\n".join(summaries[:100])  # Limit to 100 for token size
+    combined_text = "\n".join(summaries[:100])  # Keep under token limit
     prompt = (
         "You are an expert research reviewer. Based on the following summaries "
         "of research papers, generate a comprehensive systematic literature review. "
@@ -55,8 +55,8 @@ def generate_meta_review(summaries: List[str]) -> str:
         "Meta-Review:"
     )
 
-    response = client.chat.completions.create(
-        model="gpt-4.1",
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a professional academic summarizer."},
             {"role": "user", "content": prompt}
@@ -65,7 +65,7 @@ def generate_meta_review(summaries: List[str]) -> str:
         max_tokens=2000
     )
 
-    return response.choices[0].message.content
+    return response.choices[0]["message"]["content"]
 
 if __name__ == "__main__":
     # Load crawled papers
